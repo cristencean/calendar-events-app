@@ -5,7 +5,6 @@ obj/
 *.userosscache
 *.sln.docstates
 .vscode/
-*.db
 
 [Dd]ebug/
 [Rr]elease/
@@ -77,7 +76,6 @@ logs/
 *.log.*
 *.log[0-9]
 
-*.db
 *.mdf
 *.ldf
 
