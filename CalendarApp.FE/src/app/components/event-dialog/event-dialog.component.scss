@@ -1,0 +1,12 @@
+.full-width {
+    width: 100%;
+}
+
+.delete-btn {
+    background-color: #d32f2f;
+    color: white;
+
+    &:hover {
+        background-color: #b71c1c;
+    }
+}

@@ -1,0 +1,62 @@
+﻿using Moq;
+using CalendarApp.Api.Endpoints;
+using CalendarApp.Core.Interfaces;
+using CalendarApp.Core.Models;
+using CalendarApp.Core.Models.Requests;
+using FastEndpoints;
+using Microsoft.AspNetCore.Http;
+
+namespace CalendarApp.Tests.Api.Endpoints
+{
+    public class DeleteEventEndpointTests
+    {
+        private readonly Mock<ICalendarAppRepository> _repositoryMock;
+
+        public DeleteEventEndpointTests()
+        {
+            _repositoryMock = new Mock<ICalendarAppRepository>();
+        }
+
+        [Fact]
+        public async Task HandleAsync_Should_Delete_Event_When_Valid()
+        {
+            var request = new DeleteEventRequestModel { Id = Guid.NewGuid() };
+            var existingEvent = new CalendarEventModel { Id = request.Id };
+
+            _repositoryMock.Setup(r => r.GetById(request.Id)).ReturnsAsync(existingEvent);
+            _repositoryMock.Setup(r => r.Delete(request.Id)).Returns(Task.CompletedTask);
+
+            var endpoint = Factory.Create<DeleteEventEndpoint>(_repositoryMock.Object);
+            await endpoint.HandleAsync(request, default);
+
+            _repositoryMock.Verify(r => r.Delete(request.Id), Times.Once);
+            Assert.True(endpoint.HttpContext.Response.StatusCode == StatusCodes.Status200OK);
+        }
+
+        [Fact]
+        public async Task HandleAsync_Should_Return_400_When_Id_Is_Invalid()
+        {
+            var request = new DeleteEventRequestModel { Id = Guid.Empty };
+
+            var endpoint = Factory.Create<DeleteEventEndpoint>(_repositoryMock.Object);
+            await endpoint.HandleAsync(request, default);
+
+            Assert.Contains(endpoint.ValidationFailures, v => v.ErrorMessage.Contains("Id is required"));
+            _repositoryMock.Verify(r => r.Delete(It.IsAny<Guid>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task HandleAsync_Should_Return_404_When_Event_Not_Found()
+        {
+            var request = new DeleteEventRequestModel { Id = Guid.NewGuid() };
+
+            _repositoryMock.Setup(r => r.GetById(request.Id)).ReturnsAsync((CalendarEventModel?)null);
+
+            var endpoint = Factory.Create<DeleteEventEndpoint>(_repositoryMock.Object);
+            await endpoint.HandleAsync(request, default);
+
+            Assert.True(endpoint.HttpContext.Response.StatusCode == StatusCodes.Status404NotFound);
+            _repositoryMock.Verify(r => r.Delete(It.IsAny<Guid>()), Times.Never);
+        }
+    }
+}

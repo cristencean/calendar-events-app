@@ -1,0 +1,8 @@
+<header>
+  <h1>{{ title }}</h1>
+</header>
+
+<main>
+  <error-label *ngIf="this.errorMessage$ | async as errorMessage" [errorMessage]="errorMessage"></error-label>
+  <router-outlet></router-outlet>
+</main>
