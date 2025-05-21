@@ -1,0 +1,20 @@
+<div class="calendar-controls">
+    <button mat-button (click)="view = CalendarView.Month">Month</button>
+    <button mat-button (click)="view = CalendarView.Week">Week</button>
+    <button mat-button (click)="view = CalendarView.Day">Day</button>
+    <button mat-raised-button color="primary" (click)="addEvent()">
+        <mat-icon>add</mat-icon> Add Event
+    </button>
+</div>
+<br />
+<mwl-calendar-month-view *ngIf="view === CalendarView.Month" [viewDate]="viewDate" [events]="(events$ | async) ?? []"
+    (eventClicked)="handleEventClick($event.event)">
+</mwl-calendar-month-view>
+
+<mwl-calendar-week-view *ngIf="view === CalendarView.Week" [viewDate]="viewDate" [events]="(events$ | async) ?? []"
+    (eventClicked)="handleEventClick($event.event)">
+</mwl-calendar-week-view>
+
+<mwl-calendar-day-view *ngIf="view === CalendarView.Day" [viewDate]="viewDate" [events]="(events$ | async) ?? []"
+    (eventClicked)="handleEventClick($event.event)">
+</mwl-calendar-day-view>

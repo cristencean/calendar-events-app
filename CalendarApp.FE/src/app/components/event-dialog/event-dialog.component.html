@@ -1,0 +1,65 @@
+<h2 mat-dialog-title>{{ isEditMode ? 'Update Event' : 'Add Event' }}</h2>
+
+<form [formGroup]="eventForm" (ngSubmit)="onSubmit()">
+    <mat-dialog-content>
+        <mat-form-field appearance="fill" class="full-width">
+            <mat-label>Title</mat-label>
+            <input matInput formControlName="title" />
+            <mat-error *ngIf="eventForm.get('title')?.hasError('maxlength')">
+                Title cannot exceed 250 characters.
+            </mat-error>
+            <mat-error *ngIf="eventForm.get('title')?.hasError('required')">
+                Title is required.
+            </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" class="full-width">
+            <mat-label>Description</mat-label>
+            <textarea matInput formControlName="description"></textarea>
+            <mat-error *ngIf="eventForm.get('description')?.hasError('maxlength')">
+                Title cannot exceed 2000 characters.
+            </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" class="full-width" (click)="startpicker.open()">
+            <mat-label>Start date</mat-label>
+            <input matInput [ngxMatDatetimePicker]="startpicker" 
+                formControlName="startDate" [readonly]="true" type="text" />
+            <mat-error *ngIf="eventForm.get('startDate')?.hasError('pattern')">
+                Date time format is invalid. Please use YYYY-MM-DDTHH:mm:ss.
+            </mat-error>
+            <mat-error *ngIf="eventForm.get('startDate')?.hasError('required')">
+                Start date is required.
+            </mat-error>
+        </mat-form-field>
+        <ngx-mat-datetime-picker #startpicker></ngx-mat-datetime-picker>
+
+        <mat-form-field appearance="fill" class="full-width" (click)="endpicker.open()">
+            <mat-label>End date</mat-label>
+            <input matInput [ngxMatDatetimePicker]="endpicker" 
+                formControlName="endDate" [readonly]="true" type="text" />
+            <mat-error *ngIf="eventForm.get('endDate')?.hasError('pattern')">
+                Date time format is invalid. Please use YYYY-MM-DDTHH:mm:ss.
+            </mat-error>
+            <mat-error *ngIf="eventForm.get('endDate')?.hasError('required')">
+                Start date is required.
+            </mat-error>
+        </mat-form-field>
+        <ngx-mat-datetime-picker #endpicker></ngx-mat-datetime-picker>
+
+        <mat-error *ngIf="eventForm.errors?.['endDateBeforeStartDate']">
+            End date must be after start date
+        </mat-error>
+        <mat-error *ngIf="eventForm.errors?.['eventOverlap']">
+            This event overlaps with an existing one.
+        </mat-error>
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+        <button mat-button type="button" (click)="onCancel()">Cancel</button>
+        <button mat-raised-button color="primary" type="submit">
+            {{ isEditMode ? 'Update' : 'Add' }}
+        </button>
+        <button mat-raised-button *ngIf="isEditMode" class="delete-btn" type="button" (click)="onDelete()">Delete</button>
+    </mat-dialog-actions>
+</form>
