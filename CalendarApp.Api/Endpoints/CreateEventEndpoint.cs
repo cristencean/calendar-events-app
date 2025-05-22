@@ -8,11 +8,13 @@ namespace CalendarApp.Api.Endpoints
 {
     public class CreateEventEndpoint : Endpoint<CreateEventRequestModel, CalendarEventModel>
     {
-        private readonly ICalendarAppRepository _repository;
+        private readonly ICalendarAppRepository _repository; 
+        private readonly EventModelValidator _eventModelValidator;
 
-        public CreateEventEndpoint(ICalendarAppRepository repository)
+        public CreateEventEndpoint(ICalendarAppRepository repository, EventModelValidator eventModelValidator)
         {
             _repository = repository;
+            _eventModelValidator = eventModelValidator;
         }
 
         public override void Configure()
@@ -23,33 +25,37 @@ namespace CalendarApp.Api.Endpoints
 
         public override async Task HandleAsync(CreateEventRequestModel req, CancellationToken ctoken)
         {
-            var allEvents = await _repository.GetAll();
-            var eventModelValidator = new EventModelValidator(allEvents);
-
-            var newCalendarEvent = new CalendarEventModel
+            try
             {
-                Id = Guid.NewGuid(),
-                Title = req.Title,
-                StartDate = req.StartDate,
-                EndDate = req.EndDate,
-                Description = req.Description
-            };
-
-            var validationEventModelResult = await eventModelValidator.ValidateAsync(newCalendarEvent);
-            if (!validationEventModelResult.IsValid)
-            {
-                foreach (var failure in validationEventModelResult.Errors)
+                var newCalendarEvent = new CalendarEventModel
                 {
-                    AddError(failure.ErrorMessage);
+                    Id = Guid.NewGuid(),
+                    Title = req.Title,
+                    StartDate = req.StartDate,
+                    EndDate = req.EndDate,
+                    Description = req.Description
+                };
+
+                var validationResult = await _eventModelValidator.ValidateAsync(newCalendarEvent);
+                if (!validationResult.IsValid)
+                {
+                    foreach (var failure in validationResult.Errors)
+                    {
+                        AddError(failure.ErrorMessage);
+                    }
+
+                    await SendErrorsAsync(400);
+                    return;
                 }
 
-                await SendErrorsAsync(400);
-                return;
+                await _repository.Add(newCalendarEvent);
+
+                await SendAsync(newCalendarEvent, cancellation: ctoken);
             }
-
-            await _repository.Add(newCalendarEvent);
-
-            await SendAsync(newCalendarEvent, cancellation: ctoken);
+            catch (Exception)
+            {
+                await SendErrorsAsync(500);
+            }
         }
     }
 }

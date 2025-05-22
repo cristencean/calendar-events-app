@@ -21,9 +21,16 @@ namespace CalendarApp.Api.Endpoints
 
         public override async Task HandleAsync(CancellationToken ctoken)
         {
-            var events = await _repository.GetAll();
-            var eventsList = events?.ToList() ?? new List<CalendarEventModel>();
-            await SendAsync(eventsList, cancellation: ctoken);
+            try
+            {
+                var events = await _repository.GetAll();
+                var eventsList = events?.ToList() ?? new List<CalendarEventModel>();
+                await SendAsync(eventsList, cancellation: ctoken);
+            }
+            catch (Exception)
+            {
+                await SendErrorsAsync(500);
+            }
         }
     }
 }

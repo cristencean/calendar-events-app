@@ -8,10 +8,16 @@ namespace CalendarApp.Api.Endpoints
     public class UpdateEventEndpoint : Endpoint<CalendarEventModel>
     {
         private readonly ICalendarAppRepository _repository;
+        private readonly EventModelValidator _eventModelValidator;
+        private readonly EventIdValidator _eventIdValidator;
 
-        public UpdateEventEndpoint(ICalendarAppRepository repository)
+        public UpdateEventEndpoint(ICalendarAppRepository repository, 
+            EventModelValidator eventModelValidator,
+            EventIdValidator eventIdValidator)
         {
             _repository = repository;
+            _eventModelValidator = eventModelValidator;
+            _eventIdValidator = eventIdValidator;
         }
 
         public override void Configure()
@@ -22,42 +28,43 @@ namespace CalendarApp.Api.Endpoints
 
         public override async Task HandleAsync(CalendarEventModel req, CancellationToken ctoken)
         {
-            var allEvents = await _repository.GetAll();
-
-            var eventModelValidator = new EventModelValidator(allEvents);
-            var validationEventModelResult = await eventModelValidator.ValidateAsync(req);
-
-            var eventIdValidator = new EventIdValidator();
-            var validationEventIdResult = await eventIdValidator.ValidateAsync(req);
-
-            if (!validationEventModelResult.IsValid || !validationEventIdResult.IsValid)
-            {
-                var allFailures = validationEventModelResult.Errors
-                    .Concat(validationEventIdResult.Errors);
-                foreach (var failure in allFailures)
+            try { 
+                var validationResults = await Task.WhenAll(
+                    _eventModelValidator.ValidateAsync(req, ctoken),
+                    _eventIdValidator.ValidateAsync(req, ctoken)
+                );
+                var allFailures = validationResults.SelectMany(r => r.Errors);
+                if (allFailures.Any())
                 {
-                    AddError(failure.ErrorMessage);
+                    foreach (var failure in allFailures)
+                    {
+                        AddError(failure.ErrorMessage);
+                    }
+
+                    await SendErrorsAsync(400);
+                    return;
                 }
 
-                await SendErrorsAsync(400);
-                return;
-            }
+                var calendarEvent = await _repository.GetById(req.Id);
+                if (calendarEvent is null)
+                {
+                    await SendNotFoundAsync();
+                    return;
+                }
 
-            var calendarEvent = await _repository.GetById(req.Id);
-            if (calendarEvent is null)
+                calendarEvent.Title = req.Title;
+                calendarEvent.StartDate = req.StartDate;
+                calendarEvent.EndDate = req.EndDate;
+                calendarEvent.Description = req.Description;
+
+                await _repository.Update(calendarEvent);
+
+                await SendAsync(calendarEvent, cancellation: ctoken);
+            }
+            catch (Exception)
             {
-                await SendNotFoundAsync();
-                return;
+                await SendErrorsAsync(500);
             }
-
-            calendarEvent.Title = req.Title;
-            calendarEvent.StartDate = req.StartDate;
-            calendarEvent.EndDate = req.EndDate;
-            calendarEvent.Description = req.Description;
-
-            await _repository.Update(calendarEvent);
-
-            await SendAsync(calendarEvent, cancellation: ctoken);
         }
     }
 }
