@@ -5,16 +5,19 @@ using CalendarApp.Core.Models;
 using FastEndpoints;
 using Microsoft.AspNetCore.Http;
 using Moq;
+using CalendarApp.Application.Validators;
 
 namespace CalendarApp.Tests.Api.Endpoints
 {
     public class GetEventByIdEndpointTests
     {
         private readonly Mock<ICalendarAppRepository> _repositoryMock;
+        private readonly EventIdValidator _eventIdValidator;
 
         public GetEventByIdEndpointTests()
         {
             _repositoryMock = new Mock<ICalendarAppRepository>();
+            _eventIdValidator = new EventIdValidator();
         }
 
         [Fact]
@@ -32,7 +35,7 @@ namespace CalendarApp.Tests.Api.Endpoints
 
             _repositoryMock.Setup(r => r.GetById(request.Id)).ReturnsAsync(existingEvent);
 
-            var endpoint = Factory.Create<GetEventByIdEndpoint>(_repositoryMock.Object);
+            var endpoint = Factory.Create<GetEventByIdEndpoint>(_repositoryMock.Object, _eventIdValidator);
             await endpoint.HandleAsync(request, CancellationToken.None);
 
             var response = endpoint.Response;
@@ -46,7 +49,7 @@ namespace CalendarApp.Tests.Api.Endpoints
         {
             var request = new GetEventByIdRequestModel { Id = Guid.Empty };
 
-            var endpoint = Factory.Create<GetEventByIdEndpoint>(_repositoryMock.Object);
+            var endpoint = Factory.Create<GetEventByIdEndpoint>(_repositoryMock.Object, _eventIdValidator);
             await endpoint.HandleAsync(request, CancellationToken.None);
 
             Assert.Contains(endpoint.ValidationFailures, v => v.ErrorMessage.Contains("Id is required"));
@@ -60,7 +63,7 @@ namespace CalendarApp.Tests.Api.Endpoints
 
             _repositoryMock.Setup(r => r.GetById(request.Id)).ReturnsAsync((CalendarEventModel?)null);
 
-            var endpoint = Factory.Create<GetEventByIdEndpoint>(_repositoryMock.Object);
+            var endpoint = Factory.Create<GetEventByIdEndpoint>(_repositoryMock.Object, _eventIdValidator);
             await endpoint.HandleAsync(request, CancellationToken.None);
 
             Assert.True(endpoint.HttpContext.Response.StatusCode == StatusCodes.Status404NotFound);
